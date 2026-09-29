@@ -1,6 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
 
-type ProductInfo = {
+type ProductInfo export type ShopeeSearchProduct = {
+  itemId: string;
+  shopId: string;
+  title: string;
+  description: string;
+  price?: string;
+  image?: string;
+  link?: string;
+  offerLink?: string;
+}; = {
   title: string;
   description: string;
   price?: string | undefined;
@@ -107,7 +116,136 @@ async function queryShopee(appId: string, appSecret: string, query: string, rand
     }
 }
 
-export const fetchShopeeProduct = createServerFn({ method: "POST" })
+export const export const searchShopeeProducts = createServerFn({ method: "POST" })
+  .inputValidator((input: { query: string }) => {
+    const query = String(input?.query ?? "").trim();
+
+    if (!query) {
+      throw new Error("Digite o nome de um produto.");
+    }
+
+    return { query };
+  })
+  .handler(async ({ data }): Promise<ShopeeSearchProduct[]> => {
+    const appId = process.env["SHOPEE_APP_ID"];
+    const appSecret = process.env["SHOPEE_APP_SECRET"];
+
+    if (!appId || !appSecret) {
+      throw new Error("Credenciais da Shopee não configuradas.");
+    }
+
+    const queryText = data.query.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+
+    const query = `{
+      productOfferV2(
+        keyword: "${queryText}",
+        sortType: 1,
+        page: 1,
+        limit: 20
+      ) {
+        nodes {
+          itemId
+          productName
+          productLink
+          offerLink
+          imageUrl
+          priceMin
+          priceMax
+          sales
+          ratingStar
+          shopId
+          shopName
+        }
+      }
+    }`;
+
+    return await queryShopeeProducts(
+      appId,
+      appSecret,
+      query,
+    );
+  }); fetchShopeeProduct =  async function queryShopeeProducts(
+  appId: string,
+  appSecret: string,
+  query: string,
+): Promise<ShopeeSearchProduct[]> {
+  const payload = JSON.stringify({ query });
+  const timestamp = Math.floor(Date.now() / 1000);
+  const signature = await sha256Hex(
+    `${appId}${timestamp}${payload}${appSecret}`,
+  );
+
+  const res = await fetch(
+    "https://open-api.affiliate.shopee.com.br/graphql",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `SHA256 Credential=${appId}, Signature=${signature}, Timestamp=${timestamp}`,
+      },
+      body: payload,
+    },
+  );
+
+  const json = (await res.json()) as {
+    data?: {
+      productOfferV2?: {
+        nodes?: Array<Record<string, unknown>>;
+      };
+    };
+    errors?: Array<{ message?: string }>;
+  };
+
+  if (!res.ok || json.errors?.length) {
+    throw new Error(
+      json.errors?.[0]?.message ?? "Erro ao buscar produtos na Shopee.",
+    );
+  }
+
+  const nodes = json.data?.productOfferV2?.nodes ?? [];
+
+  return nodes.map((node) => {
+    const priceMin = String(node["priceMin"] ?? "");
+    const priceMax = String(node["priceMax"] ?? "");
+
+    const price =
+      priceMin && priceMax && priceMin !== priceMax
+        ? `R$ ${priceMin} - R$ ${priceMax}`
+        : priceMin
+          ? `R$ ${priceMin}`
+          : undefined;
+
+    const details = [
+      node["shopName"] ? `Loja: ${node["shopName"]}` : "",
+      price ? `Preço: ${price}` : "",
+      node["sales"] !== undefined
+        ? `Vendas: ${node["sales"]}`
+        : "",
+      node["ratingStar"]
+        ? `Avaliação: ${node["ratingStar"]}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join(" | ");
+
+    return {
+      itemId: String(node["itemId"] ?? ""),
+      shopId: String(node["shopId"] ?? ""),
+      title: String(node["productName"] ?? ""),
+      description: details,
+      price,
+      image: node["imageUrl"]
+        ? String(node["imageUrl"])
+        : undefined,
+      link: node["productLink"]
+        ? String(node["productLink"])
+        : undefined,
+      offerLink: node["offerLink"]
+        ? String(node["offerLink"])
+        : undefined,
+    };
+  });
+} createServerFn({ method: "POST" })
   .inputValidator((input: { link: string }) => {
     const link = (input?.link ?? "").trim();
     return { link };
