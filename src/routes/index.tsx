@@ -130,7 +130,13 @@ function Index() {
         <section className="space-y-3 rounded-2xl border border-border bg-card p-5 shadow-sm">
           <input
             value={link}
-            onChange={(e) => setLink(e.target.value)}
+            onChange={(e) => {
+  const value = e.target.value.replace(
+    /https:\/\/shopee\.com\.br\/product\.(\d+)\.(\d+)/g,
+    "https://shopee.com.br/product-i.$1.$2"
+  );
+  setLink(value);
+}}
             placeholder="https://shopee.com.br/product-i.123456.789012"
             className="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring"
           />
