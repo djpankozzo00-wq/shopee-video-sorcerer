@@ -134,10 +134,9 @@ Responda SOMENTE com JSON válido neste formato:
 {"hooks":["3 frases de impacto para os 0-3s"],
 "script":{"problema":"...","demonstracao":"...","cta":"..."},
 "legenda":{"titulo":"TÍTULO EM MAIÚSCULAS","beneficio":"uma linha","cta":"uma linha"},
-"hashtags":["#...","#...","#...","#...","#..."]}
+"hashtags":["10 hashtags"]}
 Regras: roteiro total com até 30 segundos de fala (máx ~75 palavras somando as 3 partes).
-Hashtags: no máximo 5, sendo 1-2 gerais da Shopee (ex: #Achadinhos, #ShopeeBrasil) e 2-3 bem específicas do nicho do produto.
-Se o mês atual tiver campanha de dia gêmeo (ex: setembro = #Shopee0909, outubro = #Shopee1010), inclua a hashtag da campanha do mês atual.`;
+Hashtags: exatamente 10 estratégicas: 3 gerais da Shopee (ex: #Achadinhos, #ShopeeBrasil, #ShopeeVideo), 4 bem específicas do nicho do produto, 2 de intenção de compra/tendência (ex: #PromoçãoShopee, #Viral) e a hashtag de campanha informada, que é obrigatória.`;
 
 export const generateVideoScript = createServerFn({ method: "POST" })
   .inputValidator((input: { title: string; description: string }) => {
@@ -151,6 +150,12 @@ export const generateVideoScript = createServerFn({ method: "POST" })
 
     const now = new Date();
     const monthLabel = `${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`;
+    // campanha do próximo dia gêmeo: após o dia X.X do mês, vira o mês seguinte
+    const br = new Date(now.getTime() - 3 * 3600 * 1000);
+    let m = br.getUTCMonth() + 1;
+    if (br.getUTCDate() > m) m = (m % 12) + 1;
+    const mm = String(m).padStart(2, "0");
+    const campaign = `#Shopee${mm}${mm}`;
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/responses", {
       method: "POST",
@@ -169,7 +174,7 @@ export const generateVideoScript = createServerFn({ method: "POST" })
           { role: "system", content: SYSTEM },
           {
             role: "user",
-            content: `Mês atual: ${monthLabel}.\nTítulo do Produto: ${data.title}\nDescrição/Especificações: ${data.description || "(não informada)"}`,
+            content: `Mês atual: ${monthLabel}. Hashtag de campanha obrigatória: ${campaign}.\nTítulo do Produto: ${data.title}\nDescrição/Especificações: ${data.description || "(não informada)"}`,
           },
         ],
       }),
@@ -223,6 +228,6 @@ export const generateVideoScript = createServerFn({ method: "POST" })
         beneficio: parsed.legenda?.beneficio ?? "",
         cta: parsed.legenda?.cta ?? "",
       },
-      hashtags: (parsed.hashtags ?? []).slice(0, 5),
+      hashtags: [campaign, ...(parsed.hashtags ?? []).filter((h) => h.toLowerCase() !== campaign.toLowerCase())].slice(0, 10),
     };
   });
