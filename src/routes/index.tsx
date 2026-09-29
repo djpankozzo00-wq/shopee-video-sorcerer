@@ -53,7 +53,7 @@ function Card({
 }: {
   title: string;
   copyText: string;
-  copyLabel?: string;
+  copyLabel?: string | undefined;
   children: React.ReactNode;
 }) {
   return (

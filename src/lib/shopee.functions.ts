@@ -3,14 +3,14 @@ import { createServerFn } from "@tanstack/react-start";
 type ProductInfo = {
   title: string;
   description: string;
-  price?: string;
-  image?: string;
-  shopName?: string;
+  price?: string | undefined;
+  image?: string | undefined;
+  shopName?: string | undefined;
   source: "shopee_api" | "not_found";
-  note?: string;
+  note?: string | undefined;
 };
 
-function extractItemIds(link: string): { itemId?: string; shopId?: string } {
+function extractItemIds(link: string): { itemId?: string | undefined; shopId?: string | undefined } {
   const a = link.match(/i\.(\d+)\.(\d+)/);
   if (a) return { shopId: a[1], itemId: a[2] };
   const b = link.match(/[?&]itemId=(\d+)/i);
