@@ -41,15 +41,7 @@ type ProductInfo = {
     shopId: undefined,
     itemId: undefined,
   };
-}: { itemId?: string | undefined; shopId?: string | undefined } {
-  const a = link.match(/i\.(\d+)\.(\d+)/);
-  if (a) return { shopId: a[1], itemId: a[2] };
-  const b = link.match(/[?&]itemId=(\d+)/i);
-  const c = link.match(/[?&]shopId=(\d+)/i);
-  return { itemId: b?.[1], shopId: c?.[1] };
-}
-
-async function sha256Hex(value: string) {
+}async function sha256Hex(value: string) {
   const bytes = new TextEncoder().encode(value);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   return Array.from(new Uint8Array(digest))
