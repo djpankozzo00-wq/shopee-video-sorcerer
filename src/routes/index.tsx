@@ -27,7 +27,7 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-function CopyButton({ text, label = "Copiar" }: { text: string; label?: string }) {
+function CopyButton({ text, label = "Copiar" }: { text: string; label?: string | undefined }) {
   const [done, setDone] = useState(false);
   return (
     <button
