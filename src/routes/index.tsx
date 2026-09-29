@@ -123,7 +123,7 @@ function Index() {
             Roteiro de vendas em segundos
           </h1>
           <p className="text-sm text-muted-foreground">
-            Cole o link do achadinho. Eu busco o produto e crio gancho, roteiro, legenda e hashtags.
+            Toque no botão e eu escolho um achadinho em alta (ou cole um link, se quiser). Eu busco o produto e crio gancho, roteiro, legenda e hashtags.
           </p>
         </header>
 
@@ -136,7 +136,7 @@ function Index() {
           />
           <button
             type="button"
-            disabled={busy || !link.trim()}
+            disabled={busy}
             onClick={() => {
               generateMutation.reset();
               searchMutation.mutate(link.trim());

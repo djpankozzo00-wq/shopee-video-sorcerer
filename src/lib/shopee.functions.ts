@@ -26,35 +26,7 @@ async function sha256Hex(value: string) {
     .join("");
 }
 
-export const fetchShopeeProduct = createServerFn({ method: "POST" })
-  .inputValidator((input: { link: string }) => {
-    const link = (input?.link ?? "").trim();
-    if (!link) throw new Error("Informe o link do produto.");
-    return { link };
-  })
-  .handler(async ({ data }): Promise<ProductInfo> => {
-    const appId = process.env["SHOPEE_APP_ID"];
-    const appSecret = process.env["SHOPEE_APP_SECRET"];
-    if (!appId || !appSecret) {
-      return {
-        title: "",
-        description: "",
-        source: "not_found",
-        note: "Credenciais da Shopee não configuradas.",
-      };
-    }
-
-    const { itemId, shopId } = extractItemIds(data.link);
-    if (!itemId) {
-      return {
-        title: "",
-        description: "",
-        source: "not_found",
-        note: "Não encontrei o código do produto no link. Cole o link completo do produto ou preencha os dados manualmente.",
-      };
-    }
-
-    const query = `{ productOfferV2(itemId: ${itemId}${shopId ? `, shopId: ${shopId}` : ""}, limit: 1) { nodes { itemId productName priceMin priceMax imageUrl shopName productCatIds ratingStar sales } } }`;
+async function queryShopee(appId: string, appSecret: string, query: string, random: boolean): Promise<ProductInfo> {
     const payload = JSON.stringify({ query });
     const timestamp = Math.floor(Date.now() / 1000);
     const signature = await sha256Hex(`${appId}${timestamp}${payload}${appSecret}`);
@@ -72,7 +44,8 @@ export const fetchShopeeProduct = createServerFn({ method: "POST" })
         data?: { productOfferV2?: { nodes?: Array<Record<string, unknown>> } };
         errors?: Array<{ message?: string }>;
       };
-      const node = json?.data?.productOfferV2?.nodes?.[0];
+      const list = json?.data?.productOfferV2?.nodes ?? [];
+      const node = random ? list[Math.floor(Math.random() * list.length)] : list[0];
       if (!node) {
         return {
           title: "",
@@ -109,6 +82,43 @@ export const fetchShopeeProduct = createServerFn({ method: "POST" })
         note: "Não consegui falar com a Shopee agora. Preencha os dados manualmente.",
       };
     }
+}
+
+export const fetchShopeeProduct = createServerFn({ method: "POST" })
+  .inputValidator((input: { link: string }) => {
+    const link = (input?.link ?? "").trim();
+    return { link };
+  })
+  .handler(async ({ data }): Promise<ProductInfo> => {
+    const appId = process.env["SHOPEE_APP_ID"];
+    const appSecret = process.env["SHOPEE_APP_SECRET"];
+    if (!appId || !appSecret) {
+      return {
+        title: "",
+        description: "",
+        source: "not_found",
+        note: "Credenciais da Shopee não configuradas.",
+      };
+    }
+
+    const { itemId, shopId } = extractItemIds(data.link);
+    if (!data.link) {
+      // sem link: pega uma oferta em alta aleatória
+      const page = 1 + Math.floor(Math.random() * 5);
+      const q = `{ productOfferV2(sortType: 2, page: ${page}, limit: 20) { nodes { itemId productName priceMin priceMax imageUrl shopName ratingStar sales } } }`;
+      return await queryShopee(appId, appSecret, q, true);
+    }
+    if (!itemId) {
+      return {
+        title: "",
+        description: "",
+        source: "not_found",
+        note: "Não encontrei o código do produto no link. Cole o link completo do produto ou preencha os dados manualmente.",
+      };
+    }
+
+    const query = `{ productOfferV2(itemId: ${itemId}${shopId ? `, shopId: ${shopId}` : ""}, limit: 1) { nodes { itemId productName priceMin priceMax imageUrl shopName productCatIds ratingStar sales } } }`;
+    return await queryShopee(appId, appSecret, query, false);
   });
 
 export type ScriptResult = {
