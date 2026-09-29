@@ -4,7 +4,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Check, Copy, Loader2, Search, Sparkles } from "lucide-react";
 
-import { fetchShopeeProduct, generateVideoScript, type ScriptResult } from "@/lib/shopee.functions";
+import {
+  fetchShopeeProduct,
+  generateVideoScript,
+  searchShopeeProducts,
+  type ScriptResult,
+  type ShopeeSearchProduct,
+} from "@/lib/shopee.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -58,7 +64,107 @@ function Card({
 }) {
   return (
     <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-      <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="space-y-2">
+  <label className="text-sm font-semibold text-foreground">
+    🔎 Pesquisar produto pelo nome
+  </label>
+
+  <div className="flex gap-2">
+    <input
+      value={productSearch}
+      onChange={(e) => setProductSearch(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          const value = productSearch.trim();
+
+          if (value) {
+            productSearchMutation.mutate(value);
+          }
+        }
+      }}
+      placeholder="Ex.: fone bluetooth"
+      className="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm"
+    />
+
+    <button
+      type="button"
+      disabled={
+        productSearchMutation.isPending ||
+        !productSearch.trim()
+      }
+      onClick={() => {
+        productSearchMutation.mutate(productSearch.trim());
+      }}
+      className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+    >
+      {productSearchMutation.isPending
+        ? "Buscando..."
+        : "Buscar"}
+    </button>
+  </div>
+</div>
+
+{productSearchMutation.isError && (
+  <p className="text-xs font-medium text-destructive">
+    {(productSearchMutation.error as Error)?.message ??
+      "Não foi possível pesquisar produtos."}
+  </p>
+)}
+
+{products.length > 0 && (
+  <div className="space-y-2 rounded-xl border border-border bg-muted/30 p-3">
+    <p className="text-sm font-semibold">
+      Produtos encontrados
+    </p>
+
+    <div className="space-y-2">
+      {products.map((product) => (
+        <button
+          key={`${product.shopId}-${product.itemId}`}
+          type="button"
+          onClick={() => {
+            setTitle(product.title);
+            setDescription(product.description);
+            setImage(product.image);
+            setNote(undefined);
+            setResult(null);
+
+            if (product.link) {
+              setLink(product.link);
+            }
+
+            setProducts([]);
+          }}
+          className="flex w-full items-center gap-3 rounded-xl border border-border bg-background p-3 text-left transition hover:bg-muted"
+        >
+          {product.image ? (
+            <img
+              src={product.image}
+              alt={product.title}
+              className="h-16 w-16 shrink-0 rounded-lg object-cover"
+            />
+          ) : (
+            <div className="h-16 w-16 shrink-0 rounded-lg bg-muted" />
+          )}
+
+          <div className="min-w-0 flex-1">
+            <p className="line-clamp-2 text-sm font-semibold">
+              {product.title}
+            </p>
+
+            <p className="mt-1 text-xs text-muted-foreground">
+              {product.description}
+            </p>
+
+            <span className="mt-2 inline-block text-xs font-semibold text-primary">
+              Selecionar produto →
+            </span>
+          </div>
+        </button>
+      ))}
+    </div>
+  </div>
+)}<div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">{title}</h2>
         <CopyButton text={copyText} label={copyLabel} />
       </div>
@@ -75,10 +181,20 @@ function Index() {
   const [note, setNote] = useState<string | undefined>();
   const [result, setResult] = useState<ScriptResult | null>(null);
 
-  const fetchProduct = useServerFn(fetchShopeeProduct);
+  const [productSearch, setProductSearch] = useState("");
+const [products, setProducts] = useState<ShopeeSearchProduct[]>([]);const searchProducts = useServerFn(searchShopeeProducts);const fetchProduct = useServerFn(fetchShopeeProduct);
   const generate = useServerFn(generateVideoScript);
 
-  const generateMutation = useMutation({
+  const generateMutation const productSearchMutation = useMutation({
+  mutationFn: (value: string) =>
+    searchProducts({
+      data: { query: value },
+    }),
+
+  onSuccess: (data) => {
+    setProducts(data);
+  },
+}); = useMutation({
     mutationFn: (input: { title: string; description: string }) => generate({ data: input }),
     onSuccess: (data) => setResult(data),
   });
