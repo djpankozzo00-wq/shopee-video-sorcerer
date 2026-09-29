@@ -13,7 +13,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Cole o link do produto da Shopee e receba ganchos, roteiro de 30 segundos, legenda e as 5 melhores hashtags.",
+          "Cole o link do produto da Shopee e receba ganchos, roteiro de 30 segundos, legenda e as 10 hashtags estratégicas.",
       },
       { property: "og:title", content: "Roteirista de Shopee Vídeo" },
       {
