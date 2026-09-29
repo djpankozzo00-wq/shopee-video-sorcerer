@@ -8,9 +8,40 @@ type ProductInfo = {
   shopName?: string | undefined;
   source: "shopee_api" | "not_found";
   note?: string | undefined;
-};
+};function extractItemIds(link: string): { itemId?: string; shopId?: string } {
+  const cleanLink = (link || "").trim();
 
-function extractItemIds(link: string): { itemId?: string | undefined; shopId?: string | undefined } {
+  // Formato:
+  // https://shopee.com.br/product/413596010/3188171465
+  const productPathMatch = cleanLink.match(
+    /\/product\/(\d+)\/(\d+)/i
+  );
+
+  if (productPathMatch) {
+    return {
+      shopId: productPathMatch[1],
+      itemId: productPathMatch[2],
+    };
+  }
+
+  // Formato:
+  // https://shopee.com.br/product-i.413596010.3188171465
+  const productIMatch = cleanLink.match(
+    /product-i\.(\d+)\.(\d+)/i
+  );
+
+  if (productIMatch) {
+    return {
+      shopId: productIMatch[1],
+      itemId: productIMatch[2],
+    };
+  }
+
+  return {
+    shopId: undefined,
+    itemId: undefined,
+  };
+}: { itemId?: string | undefined; shopId?: string | undefined } {
   const a = link.match(/i\.(\d+)\.(\d+)/);
   if (a) return { shopId: a[1], itemId: a[2] };
   const b = link.match(/[?&]itemId=(\d+)/i);
