@@ -64,6 +64,95 @@ function Card({
 }) {
   return (
     <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">{title}</h2>
+        <CopyButton text={copyText} label={copyLabel} />
+      </div>
+      <div className="space-y-3 text-sm leading-relaxed text-card-foreground">{children}</div>
+    </section>
+  );
+}
+
+function Index() {
+  const [link, setLink] = useState("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [image, setImage] = useState<string | undefined>();
+  const [note, setNote] = useState<string | undefined>();
+  const [result, setResult] = useState<ScriptResult | null>(null);
+
+  const [productSearch, setProductSearch] = useState("");
+  const [products, setProducts] = useState<ShopeeSearchProduct[]>([]);
+
+  const searchProducts = useServerFn(searchShopeeProducts);
+  const fetchProduct = useServerFn(fetchShopeeProduct);
+  const generate = useServerFn(generateVideoScript);
+
+  const productSearchMutation = useMutation({
+    mutationFn: (value: string) =>
+      searchProducts({
+        data: { query: value },
+      }),
+
+    onSuccess: (data) => {
+      setProducts(data);
+    },
+  });
+
+  const generateMutation = useMutation({
+    mutationFn: (input: { title: string; description: string }) =>
+      generate({
+        data: input,
+      }),
+
+    onSuccess: (data) => setResult(data),
+  });
+
+  const searchMutation = useMutation({
+    mutationFn: (value: string) => fetchProduct({ data: { link: value } }),
+    onSuccess: (product) => {
+      setNote(product.note);
+      setImage(product.image);
+      if (product.title) {
+        setTitle(product.title);
+        setDescription(product.description);
+        setResult(null);
+        generateMutation.mutate({ title: product.title, description: product.description });
+      }
+    },
+  });
+
+  const busy = searchMutation.isPending || generateMutation.isPending;
+  const error =
+    (searchMutation.error as Error | null)?.message ?? (generateMutation.error as Error | null)?.message;
+
+  const hashtagsText = result?.hashtags.join(" ") ?? "";
+  const legendaText = result
+    ? `${result.legenda.titulo}\n${result.legenda.beneficio}\n${result.legenda.cta}\n\n${hashtagsText}`
+    : "";
+  const roteiroText = result
+    ? `PROBLEMA/DESEJO\n${result.script.problema}\n\nDEMONSTRAÇÃO\n${result.script.demonstracao}\n\nCTA\n${result.script.cta}`
+    : "";
+  const tudoText = result
+    ? `GANCHOS\n${result.hooks.map((h, i) => `${i + 1}. ${h}`).join("\n")}\n\n${roteiroText}\n\nLEGENDA\n${legendaText}`
+    : "";
+
+  return (
+    <main className="min-h-screen bg-background px-4 py-10">
+      <div className="mx-auto w-full max-w-2xl space-y-6">
+        <header className="space-y-2 text-center">
+          <p className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">
+            <Sparkles className="size-3.5" /> Shopee Vídeo
+          </p>
+          <h1 className="text-3xl font-black tracking-tight text-foreground">
+            Roteiro de vendas em segundos
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Toque no botão e eu escolho um achadinho em alta (ou cole um link, se quiser). Eu busco o produto e crio gancho, roteiro, legenda e hashtags.
+          </p>
+        </header>
+
+        <section className="space-y-3 rounded-2xl border border-border bg-card p-5 shadow-sm">
       <div className="space-y-2">
   <label className="text-sm font-semibold text-foreground">
     🔎 Pesquisar produto pelo nome
@@ -164,86 +253,8 @@ function Card({
       ))}
     </div>
   </div>
-)}<div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">{title}</h2>
-        <CopyButton text={copyText} label={copyLabel} />
-      </div>
-      <div className="space-y-3 text-sm leading-relaxed text-card-foreground">{children}</div>
-    </section>
-  );
-}
+)}
 
-function Index() {
-  const [link, setLink] = useState("");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [image, setImage] = useState<string | undefined>();
-  const [note, setNote] = useState<string | undefined>();
-  const [result, setResult] = useState<ScriptResult | null>(null);
-
-  const [productSearch, setProductSearch] = useState("");
-const [products, setProducts] = useState<ShopeeSearchProduct[]>([]);const searchProducts = useServerFn(searchShopeeProducts);const fetchProduct = useServerFn(fetchShopeeProduct);
-  const generate = useServerFn(generateVideoScript);
-
-  const generateMutation const productSearchMutation = useMutation({
-  mutationFn: (value: string) =>
-    searchProducts({
-      data: { query: value },
-    }),
-
-  onSuccess: (data) => {
-    setProducts(data);
-  },
-}); = useMutation({
-    mutationFn: (input: { title: string; description: string }) => generate({ data: input }),
-    onSuccess: (data) => setResult(data),
-  });
-
-  const searchMutation = useMutation({
-    mutationFn: (value: string) => fetchProduct({ data: { link: value } }),
-    onSuccess: (product) => {
-      setNote(product.note);
-      setImage(product.image);
-      if (product.title) {
-        setTitle(product.title);
-        setDescription(product.description);
-        setResult(null);
-        generateMutation.mutate({ title: product.title, description: product.description });
-      }
-    },
-  });
-
-  const busy = searchMutation.isPending || generateMutation.isPending;
-  const error =
-    (searchMutation.error as Error | null)?.message ?? (generateMutation.error as Error | null)?.message;
-
-  const hashtagsText = result?.hashtags.join(" ") ?? "";
-  const legendaText = result
-    ? `${result.legenda.titulo}\n${result.legenda.beneficio}\n${result.legenda.cta}\n\n${hashtagsText}`
-    : "";
-  const roteiroText = result
-    ? `PROBLEMA/DESEJO\n${result.script.problema}\n\nDEMONSTRAÇÃO\n${result.script.demonstracao}\n\nCTA\n${result.script.cta}`
-    : "";
-  const tudoText = result
-    ? `GANCHOS\n${result.hooks.map((h, i) => `${i + 1}. ${h}`).join("\n")}\n\n${roteiroText}\n\nLEGENDA\n${legendaText}`
-    : "";
-
-  return (
-    <main className="min-h-screen bg-background px-4 py-10">
-      <div className="mx-auto w-full max-w-2xl space-y-6">
-        <header className="space-y-2 text-center">
-          <p className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">
-            <Sparkles className="size-3.5" /> Shopee Vídeo
-          </p>
-          <h1 className="text-3xl font-black tracking-tight text-foreground">
-            Roteiro de vendas em segundos
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Toque no botão e eu escolho um achadinho em alta (ou cole um link, se quiser). Eu busco o produto e crio gancho, roteiro, legenda e hashtags.
-          </p>
-        </header>
-
-        <section className="space-y-3 rounded-2xl border border-border bg-card p-5 shadow-sm">
           <input
             value={link}
             onChange={(e) => {

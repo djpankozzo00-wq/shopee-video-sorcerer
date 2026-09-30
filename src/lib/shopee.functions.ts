@@ -1,15 +1,17 @@
 import { createServerFn } from "@tanstack/react-start";
 
-type ProductInfo export type ShopeeSearchProduct = {
+export type ShopeeSearchProduct = {
   itemId: string;
   shopId: string;
   title: string;
   description: string;
-  price?: string;
-  image?: string;
-  link?: string;
-  offerLink?: string;
-}; = {
+  price?: string | undefined;
+  image?: string | undefined;
+  link?: string | undefined;
+  offerLink?: string | undefined;
+};
+
+type ProductInfo = {
   title: string;
   description: string;
   price?: string | undefined;
@@ -17,7 +19,9 @@ type ProductInfo export type ShopeeSearchProduct = {
   shopName?: string | undefined;
   source: "shopee_api" | "not_found";
   note?: string | undefined;
-};function extractItemIds(link: string): { itemId?: string; shopId?: string } {
+};
+
+function extractItemIds(link: string): { itemId?: string | undefined; shopId?: string | undefined } {
   const cleanLink = (link || "").trim();
 
   // Formato:
@@ -50,7 +54,9 @@ type ProductInfo export type ShopeeSearchProduct = {
     shopId: undefined,
     itemId: undefined,
   };
-}async function sha256Hex(value: string) {
+}
+
+async function sha256Hex(value: string) {
   const bytes = new TextEncoder().encode(value);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   return Array.from(new Uint8Array(digest))
@@ -116,7 +122,7 @@ async function queryShopee(appId: string, appSecret: string, query: string, rand
     }
 }
 
-export const export const searchShopeeProducts = createServerFn({ method: "POST" })
+export const searchShopeeProducts = createServerFn({ method: "POST" })
   .inputValidator((input: { query: string }) => {
     const query = String(input?.query ?? "").trim();
 
@@ -164,7 +170,9 @@ export const export const searchShopeeProducts = createServerFn({ method: "POST"
       appSecret,
       query,
     );
-  }); fetchShopeeProduct =  async function queryShopeeProducts(
+  });
+
+async function queryShopeeProducts(
   appId: string,
   appSecret: string,
   query: string,
@@ -245,7 +253,9 @@ export const export const searchShopeeProducts = createServerFn({ method: "POST"
         : undefined,
     };
   });
-} createServerFn({ method: "POST" })
+}
+
+export const fetchShopeeProduct = createServerFn({ method: "POST" })
   .inputValidator((input: { link: string }) => {
     const link = (input?.link ?? "").trim();
     return { link };
