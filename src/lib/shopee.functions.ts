@@ -17,6 +17,7 @@ type ProductInfo = {
   price?: string | undefined;
   image?: string | undefined;
   shopName?: string | undefined;
+  link?: string | undefined;
   source: "shopee_api" | "not_found";
   note?: string | undefined;
 };
@@ -110,6 +111,7 @@ async function queryShopee(appId: string, appSecret: string, query: string, rand
         price: priceMin ? `R$ ${priceMin}` : undefined,
         image: node["imageUrl"] ? String(node["imageUrl"]) : undefined,
         shopName: node["shopName"] ? String(node["shopName"]) : undefined,
+        link: node["offerLink"] ? String(node["offerLink"]) : node["productLink"] ? String(node["productLink"]) : undefined,
         source: "shopee_api",
       };
     } catch {
@@ -276,7 +278,7 @@ export const fetchShopeeProduct = createServerFn({ method: "POST" })
     if (!data.link) {
       // sem link: pega uma oferta em alta aleatória
       const page = 1 + Math.floor(Math.random() * 5);
-      const q = `{ productOfferV2(sortType: 2, page: ${page}, limit: 20) { nodes { itemId productName priceMin priceMax imageUrl shopName ratingStar sales } } }`;
+      const q = `{ productOfferV2(sortType: 2, page: ${page}, limit: 20) { nodes { itemId productLink offerLink productName priceMin priceMax imageUrl shopName ratingStar sales } } }`;
       return await queryShopee(appId, appSecret, q, true);
     }
     if (!itemId) {
@@ -288,7 +290,7 @@ export const fetchShopeeProduct = createServerFn({ method: "POST" })
       };
     }
 
-    const query = `{ productOfferV2(itemId: ${itemId}${shopId ? `, shopId: ${shopId}` : ""}, limit: 1) { nodes { itemId productName priceMin priceMax imageUrl shopName productCatIds ratingStar sales } } }`;
+    const query = `{ productOfferV2(itemId: ${itemId}${shopId ? `, shopId: ${shopId}` : ""}, limit: 1) { nodes { itemId productLink offerLink productName priceMin priceMax imageUrl shopName productCatIds ratingStar sales } } }`;
     return await queryShopee(appId, appSecret, query, false);
   });
 
