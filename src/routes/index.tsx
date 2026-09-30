@@ -75,6 +75,7 @@ function Card({
 
 function Index() {
   const [link, setLink] = useState("");
+  const [productUrl, setProductUrl] = useState<string | undefined>();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [image, setImage] = useState<string | undefined>();
@@ -111,6 +112,7 @@ function Index() {
   const searchMutation = useMutation({
     mutationFn: (value: string) => fetchProduct({ data: { link: value } }),
     onSuccess: (product) => {
+      setProductUrl(product.link ?? (link.trim() || undefined));
       setNote(product.note);
       setImage(product.image);
       if (product.title) {
@@ -220,6 +222,7 @@ function Index() {
 
             if (product.link) {
               setLink(product.link);
+              setProductUrl(product.link);
             }
 
             setProducts([]);
@@ -322,7 +325,14 @@ function Index() {
 
         {title && (
           <section className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
-            {image && <img src={image} alt={title} className="size-16 rounded-lg object-cover" />}
+            {image &&
+              (result && productUrl ? (
+                <a href={productUrl} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                  <img src={image} alt={title} className="size-16 rounded-lg object-cover" />
+                </a>
+              ) : (
+                <img src={image} alt={title} className="size-16 rounded-lg object-cover" />
+              ))}
             <div>
               <p className="text-sm font-semibold text-card-foreground">{title}</p>
               {description && <p className="text-xs text-muted-foreground">{description}</p>}
