@@ -57,6 +57,13 @@ function extractItemIds(link: string): { itemId?: string | undefined; shopId?: s
   };
 }
 
+function offerScore(n: Record<string, unknown>) {
+  const sales = Number(n["sales"] ?? 0) || 0;
+  const rate = Number(n["commissionRate"] ?? 0) || 0;
+  const rating = Number(n["ratingStar"] ?? 0) || 0;
+  return Math.log10(sales + 1) * (rate * 100 + 1) * (rating || 4);
+}
+
 async function sha256Hex(value: string) {
   const bytes = new TextEncoder().encode(value);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
@@ -83,8 +90,9 @@ async function queryShopee(appId: string, appSecret: string, query: string, rand
         data?: { productOfferV2?: { nodes?: Array<Record<string, unknown>> } };
         errors?: Array<{ message?: string }>;
       };
-      const list = json?.data?.productOfferV2?.nodes ?? [];
-      const node = random ? list[Math.floor(Math.random() * list.length)] : list[0];
+      const list = [...(json?.data?.productOfferV2?.nodes ?? [])].sort((a, b) => offerScore(b) - offerScore(a));
+      const top = list.slice(0, 5);
+      const node = random ? top[Math.floor(Math.random() * top.length)] : list[0];
       if (!node) {
         return {
           title: "",
@@ -147,7 +155,7 @@ export const searchShopeeProducts = createServerFn({ method: "POST" })
     const query = `{
       productOfferV2(
         keyword: "${queryText}",
-        sortType: 1,
+        sortType: 2,
         page: 1,
         limit: 20
       ) {
@@ -160,6 +168,7 @@ export const searchShopeeProducts = createServerFn({ method: "POST" })
           priceMin
           priceMax
           sales
+          commissionRate
           ratingStar
           shopId
           shopName
@@ -212,7 +221,7 @@ async function queryShopeeProducts(
     );
   }
 
-  const nodes = json.data?.productOfferV2?.nodes ?? [];
+  const nodes = [...(json.data?.productOfferV2?.nodes ?? [])].sort((a, b) => offerScore(b) - offerScore(a));
 
   return nodes.map((node) => {
     const priceMin = String(node["priceMin"] ?? "");
@@ -277,8 +286,8 @@ export const fetchShopeeProduct = createServerFn({ method: "POST" })
     const { itemId, shopId } = extractItemIds(data.link);
     if (!data.link) {
       // sem link: pega uma oferta em alta aleatória
-      const page = 1 + Math.floor(Math.random() * 5);
-      const q = `{ productOfferV2(sortType: 2, page: ${page}, limit: 20) { nodes { itemId productLink offerLink productName priceMin priceMax imageUrl shopName ratingStar sales } } }`;
+      const page = 1 + Math.floor(Math.random() * 2);
+      const q = `{ productOfferV2(sortType: ${Math.random() < 0.5 ? 2 : 5}, page: ${page}, limit: 50) { nodes { itemId productLink offerLink productName priceMin priceMax imageUrl shopName ratingStar sales commissionRate } } }`;
       return await queryShopee(appId, appSecret, q, true);
     }
     if (!itemId) {
