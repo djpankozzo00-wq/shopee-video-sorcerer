@@ -5,10 +5,10 @@ export type ShopeeSearchProduct = {
   shopId: string;
   title: string;
   description: string;
-  price?: string;
-  image?: string;
-  link?: string;
-  offerLink?: string;
+  price?: string | undefined;
+  image?: string | undefined;
+  link?: string | undefined;
+  offerLink?: string | undefined;
 };
 
 type ProductInfo = {
@@ -21,7 +21,7 @@ type ProductInfo = {
   note?: string | undefined;
 };
 
-function extractItemIds(link: string): { itemId?: string; shopId?: string } {
+function extractItemIds(link: string): { itemId?: string | undefined; shopId?: string | undefined } {
   const cleanLink = (link || "").trim();
 
   // Formato:
