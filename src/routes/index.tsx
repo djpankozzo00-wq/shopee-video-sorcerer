@@ -226,6 +226,7 @@ function Index() {
             }
 
             setProducts([]);
+            generateMutation.mutate({ title: product.title, description: product.description });
           }}
           className="flex w-full items-center gap-3 rounded-xl border border-border bg-background p-3 text-left transition hover:bg-muted"
         >
